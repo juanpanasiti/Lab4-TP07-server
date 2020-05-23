@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
 //SUBMITS A PRODUCT
 router.post('/', upload.single('productImage'), async (req,res) => {
     try {
-        console.log(req.file)
+        console.log("Archivo: " + req.file)
         const product = new Product({
             instrumento: req.body.instrumento,
             marca: req.body.marca,
