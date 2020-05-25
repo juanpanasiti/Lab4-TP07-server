@@ -1,7 +1,8 @@
 const express = require('express')
 const router = express.Router()
 const Product = require('../models/Product')
-const multer = require('multer')
+const multer = require('multer') //subir archivos
+const fs = require('fs') //borrar archivos
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -13,7 +14,7 @@ const storage = multer.diskStorage({
 })
 
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype === 'image/jpeg' || 'image/png'){
+    if (file.mimetype === 'image/jpeg' || 'image/png') {
         cb(null, true)
     } else {
         cb(null, false)
@@ -22,7 +23,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 1024*1024*5
+        fileSize: 1024 * 1024 * 5
     },
     fileFilter: fileFilter
 })
@@ -35,12 +36,12 @@ router.get('/', async (req, res) => {
         const products = await Product.find()
         res.json(products)
     } catch (err) {
-        res.json({message: err})
+        res.json({ message: err })
     }
 })//Get_all
 
 //SUBMITS A PRODUCT
-router.post('/', upload.single('productImage'), async (req,res) => {
+router.post('/', upload.single('productImage'), async (req, res) => {
     try {
         console.log("Archivo: " + req.file)
         const product = new Product({
@@ -53,13 +54,13 @@ router.post('/', upload.single('productImage'), async (req,res) => {
             descripcion: req.body.descripcion,
             imagenPath: req.file.path
         })
-                
+
         const savedProd = await product.save()
         res.json(savedProd)
     } catch (err) {
-        res.json({ message: err})
+        res.json({ message: err })
     }
-    
+
 })//POST
 
 //GET ONE
@@ -68,14 +69,14 @@ router.get('/:prodId', async (req, res) => {
         const prod = await Product.findById(req.params.prodId)
         res.json(prod)
     } catch (err) {
-        res.json({message: err})
+        res.json({ message: err })
     }
 })//GET_ONE
 
 //Delete Product
-router.delete('/:prodId', async (req,res) => {
+router.delete('/:prodId', async (req, res) => {
     try {
-        const removedProd = await Product.remove({_id: req.params.prodId})
+        const removedProd = await Product.remove({ _id: req.params.prodId })
         res.json(removedProd)
     } catch (err) {
         res.json(err)
@@ -83,23 +84,44 @@ router.delete('/:prodId', async (req,res) => {
 })//DELETE
 
 //Update
-router.put('/:prodId', async (req,res) => {
+router.put('/:prodId', upload.single('productImage'), async (req, res) => {
+    console.log("Actualizando");
+    
     try {
-        const updatedProd = await Product.findOneAndUpdate(
-            {_id: req.params.prodId},
-            { $set: {
-                instrumento: req.body.instrumento,
-                marca: req.body.marca,
-                modelo: req.body.modelo,
-                imagen: req.body.imagen,
-                precio: req.body.precio,
-                costoEnvio: req.body.costoEnvio,
-                cantidadVendida: req.body.cantidadVendida,
-                descripcion: req.body.descripcion
-            }})
-            res.json(updatedProd)
+        const updatedProd = await Product.findById(req.params.prodId)
+        //Actualizar campos
+        updatedProd.instrumento = req.body.instrumento
+        updatedProd.marca = req.body.marca
+        updatedProd.modelo = req.body.modelo
+        updatedProd.precio = req.body.precio
+        updatedProd.costoEnvio = req.body.costoEnvio
+        updatedProd.cantidadVendida = req.body.cantidadVendida
+        updatedProd.descripcion = req.body.descripcion
+        
+        if(req.file){
+            console.log("cargar imagen");
+            oldPath = updatedProd.imagenPath
+            updatedProd.imagenPath = req.file.path
+            try {
+                fs.unlinkSync(oldPath)
+                console.log("Se borró el archivo " + oldPath);
+
+            } catch (err) {
+                console.log("No se pudo borrar el archivo " + oldPath);
+                console.log("Error: " + err.message);
+                
+                
+            }
+        }
+        console.log("imagne cargada");
+        
+        //Guardar
+        const savedProd = await updatedProd.save()
+        res.json(savedProd)
     } catch (err) {
-        res.json({message: err})
+        console.log(err.message);
+        
+        res.json({ message: err.messsage })
     }
 })
 
